@@ -1,0 +1,18 @@
+{
+    "dependencies": [
+        "."
+    ],
+    "graphs": {
+        "newsroom": "./graph.py:graph"
+    },
+    "env": ".env",
+    "store": {
+    "index": {
+      "embed": "google_genai:gemini-embedding-2-preview",
+      "dims": 3072,
+      "fields": [
+        "topic"
+      ]
+    }
+  }
+}
