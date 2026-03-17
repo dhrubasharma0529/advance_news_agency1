@@ -58,6 +58,71 @@ echo "OPENAI_MODEL=gpt-4o-mini" >> .env  # or gpt-4o, gpt-3.5-turbo, etc.
 python main.py
 ```
 
+## Architecture
+
+### Workflow diagram
+
+```
+START
+  │
+  ▼
+cache_check ──── HIT ──────────────────────────────────────────┐
+  │ MISS                                                        │
+  ▼                                                            │
+planner_node                                                    │
+  │                                                            │
+  ▼                                                            │
+┌─────────────────────────────────────┐                        │
+│  researcher subgraph                │                        │
+│                                     │                        │
+│  reason (LLM) ──── finish ──► finalize                       │
+│     │                               │                        │
+│     ├─► search_news()               │                        │
+│     ├─► search_headlines()  ──► observe (LLM) ──► reason     │
+│     └─► fetch_page()                │                        │
+└─────────────────────────────────────┘                        │
+  │                                                            │
+  ▼                                                            │
+┌─────────────────────────────────────┐                        │
+│  writer subgraph                    │◄── (revision loop)     │
+│  plan (LLM) → draft (LLM) → polish (LLM) → finalize         │
+└─────────────────────────────────────┘                        │
+  │                                                            │
+  ▼                                                            │
+┌─────────────────────────────────────┐                        │
+│  fact_checker subgraph              │                        │
+│                                     │                        │
+│  extract_claims (LLM)               │                        │
+│     │                               │                        │
+│  reason (LLM) ──── finish ──► finalize                       │
+│     │                               │                        │
+│     ├─► search_news()               │                        │
+│     ├─► search_headlines()  ──► observe (LLM) ──► reason     │
+│     └─► fetch_page()                │                        │
+└─────────────────────────────────────┘                        │
+  │                                                            │
+  ▼                                                            │
+review_router_node                                             │
+  │                                                            │
+  ├─► "research"  ──────────────────► researcher (loop back)   │
+  ├─► "writer"    ──────────────────► writer (revision)        │
+  └─► "editor"                                                 │
+         │                                                     │
+         ▼                                                     │
+┌─────────────────────────────────────┐                        │
+│  editor subgraph                    │                        │
+│  review (LLM) → polish (LLM) → finalize                      │
+└─────────────────────────────────────┘                        │
+  │                                                            │
+  ▼                                                            │
+publisher_node  ◄──────────────────────────────────────────────┘
+  │
+  ▼
+cache_store_node
+  │
+  ▼
+END
+```
 ---
 
 ## Sample Run
@@ -280,4 +345,15 @@ This election not only highlights the growing influence of younger
 generations in Nepal's politics but also sets the stage for
 potential reforms aimed at addressing long-standing issues such as
 corruption, governance, and economic development.
+```
+
+### Problem faced
+```
+1. It is still hard for me to follow the state.
+2. It was hard for me to manage the memory.
+3. To define the schema in the state
+4. When to use llm to invoke in certain nodes.
+5. During semantic search , gpt-4-mini could not provide embedding so gemini-embedding models were used.
+6. When to pass the whole state and expect the same state and part of the state.
+
 ```
